@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-multipart 
+websockets       
+numpy==1.23.4
+opencv-python  
+torch==2.2.2+cpu
+torchvision==0.17.2+cpu 
+-f https://download.pytorch.org/whl/torch_stable.html
+scipy
+tqdm
+numba
+opencv-contrib-python
+librosa==0.9.2
