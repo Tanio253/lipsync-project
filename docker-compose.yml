@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    volumes:
+      - ./gateway:/app
+
+  worker:
+    build: ./worker
+    environment:
+      - REDIS_HOST=redis
+      - DEVICE=cpu # Change to 'cuda' for GPU support
+    depends_on:
+      - redis
+    volumes:
+      - ./worker:/app
+    
+volumes:
+  redis_data:
