@@ -11,12 +11,12 @@ This project implements a real-time, streaming lip-syncing system using a Wav2Li
 
 ## System Architecture
 ![Logo](assets/arch.png)
-The Client establishes a WebSocket connection with the Gateway and streams audio chunks.
-The Gateway pushes these tasks as jobs into a Redis List (worker_queue).
-The Worker continuously pulls jobs from the queue.
-After processing the audio with the AI model, the Worker publishes the resulting video frame to a Redis Pub/Sub channel unique to the client.
-The Gateway, which is subscribed to this channel, receives the frame instantly.
-Finally, the Gateway streams the video frame back to the Client over the WebSocket, completing the real-time loop.
+1. The Client establishes a WebSocket connection with the Gateway and streams audio chunks.
+2. The Gateway pushes these tasks as jobs into a Redis List (worker_queue).
+3. The Worker continuously pulls jobs from the queue.
+4. After processing the audio with the AI model, the Worker publishes the resulting video frame to a Redis Pub/Sub channel unique to the client.
+5. The Gateway, which is subscribed to this channel, receives the frame instantly.
+6. Finally, the Gateway streams the video frame back to the Client over the WebSocket, completing the real-time loop.
 
 ## Prerequisites
 Before you begin, ensure you have the following installed on your system:
