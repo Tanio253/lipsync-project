@@ -113,7 +113,7 @@ html_test_page_streaming = """
         let mediaStreamSource;
         let imageBase64 = null;
         const TARGET_SAMPLE_RATE = 16000;
-        const BUFFER_SIZE = 4096; // Audio buffer size for ScriptProcessorNode
+        const BUFFER_SIZE = 16384; // Audio buffer size for ScriptProcessorNode
 
         imageFileInput.onchange = function(event) {
             const file = event.target.files[0];

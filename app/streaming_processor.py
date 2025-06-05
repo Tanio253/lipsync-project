@@ -105,7 +105,7 @@ class Wav2LipStreamingSession:
         face_resized_cv2 = cv2.resize(face_crop_cv2, (IMG_SIZE, IMG_SIZE))
         
         img_masked = face_resized_cv2.copy()
-        img_masked[:, IMG_SIZE // 2:] = 0 # Mask bottom half
+        img_masked[IMG_SIZE // 2:,:] = 0 # Mask bottom half
 
         # Concatenate masked and original resized face crops (HWC format)
         # Original Wav2Lip preprocesses by stacking along the channel axis (axis=2 for HWC)
