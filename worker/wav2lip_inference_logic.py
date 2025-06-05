@@ -1,5 +1,5 @@
 import numpy as np
-import scipy, cv2, os, sys, audio
+import scipy, cv2, os, sys, audio 
 import json, subprocess, random, string
 from tqdm import tqdm
 from glob import glob
@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 import face_detection 
 from models import Wav2Lip
 mel_step_size = 16
-img_size_global = 96
+img_size_global = 96 
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'Using {device} for Wav2Lip inference.')
 
@@ -24,17 +25,29 @@ def _load_wav2lip_checkpoint(checkpoint_path):
     return checkpoint
 
 def load_wav2lip_model(model_path):
-    model = Wav2Lip()
-    print(f"Loading Wav2Lip checkpoint from: {model_path}")
-    checkpoint = _load_wav2lip_checkpoint(model_path)
-    
-    s = checkpoint["state_dict"]
-    new_s = {}
-    for k, v in s.items():
-        new_s[k.replace('module.', '')] = v
-    model.load_state_dict(new_s)
+    print(f"Loading Wav2Lip model from: {model_path}")
 
-    model = model.to(device)
+    try:
+        checkpoint = torch.load(model_path, map_location=device)
+
+        if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+            print("Detected state_dict checkpoint (.pth)")
+            model = Wav2Lip()
+            s = checkpoint["state_dict"]
+            new_s = {k.replace("module.", ""): v for k, v in s.items()}
+            model.load_state_dict(new_s)
+            return model.to(device).eval()
+
+        elif isinstance(checkpoint, Wav2Lip):
+            print("Detected full serialized Wav2Lip model (.pt)")
+            return checkpoint.to(device).eval()
+
+    except RuntimeError as e:
+        if "PytorchStreamReader failed reading zip archive" not in str(e):
+            raise  
+
+    print("Detected TorchScript model (.pt)")
+    model = torch.jit.load(model_path, map_location=device)
     return model.eval()
 
 def get_smoothened_boxes(boxes, T):
@@ -55,7 +68,7 @@ def detect_faces(images, face_det_batch_size, pads, nosmooth):
     while True:
         predictions = []
         try:
-            for i in range(0, len(images), batch_size): 
+            for i in range(0, len(images), batch_size):
                 predictions.extend(detector.get_detections_for_batch(np.array(images[i:i + batch_size])))
         except RuntimeError as e:
             if batch_size == 1:
@@ -104,7 +117,7 @@ def datagen_for_wav2lip(full_frames, mels, box_coords, static_mode, img_size_par
     for i, m in enumerate(mels):
         idx = 0 if static_mode else i % len(full_frames)
         original_frame = full_frames[idx].copy()
-        face_crop, coords = face_crops_with_coords[idx] 
+        face_crop, coords = face_crops_with_coords[idx]
 
         face_crop_resized = cv2.resize(face_crop, (img_size_param, img_size_param))
             
@@ -125,7 +138,7 @@ def datagen_for_wav2lip(full_frames, mels, box_coords, static_mode, img_size_par
             yield img_batch_processed, mel_batch_processed, frame_batch, coords_batch
             img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
 
-    if len(img_batch) > 0:
+    if len(img_batch) > 0: 
         img_batch_np, mel_batch_np = np.asarray(img_batch), np.asarray(mel_batch)
         img_masked = img_batch_np.copy()
         img_masked[:, img_size_param//2:] = 0
@@ -142,10 +155,10 @@ def run_wav2lip_inference(
     wav2lip_model_instance, 
     static: bool = False,
     fps: float = 25.,
-    pads: list = [0, 10, 0, 0],
+    pads: list = [0, 20, 0, 0],
     face_det_batch_size: int = 16,
-    wav2lip_batch_size: int = 128,
-    resize_factor: int = 1,
+    wav2lip_batch_size: int = 128, 
+    resize_factor: int = 2,
     crop: list = [0, -1, 0, -1],
     box: list = [-1, -1, -1, -1],
     rotate: bool = False,
@@ -195,7 +208,7 @@ def run_wav2lip_inference(
         full_frames = [cv2.imread(face_input_path)]
         if full_frames[0] is None:
              raise ValueError(f"Failed to read image from {face_input_path}. Check path and image integrity.")
-        current_fps = fps # Use specified FPS for static image
+        current_fps = fps 
     else:
         video_stream = cv2.VideoCapture(face_input_path)
         current_fps = video_stream.get(cv2.CAP_PROP_FPS)
@@ -209,9 +222,8 @@ def run_wav2lip_inference(
             if resize_factor > 1:
                 frame = cv2.resize(frame, (frame.shape[1]//resize_factor, frame.shape[0]//resize_factor))
             if rotate:
-                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE) # Corrected constant
+                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE) 
 
-            # Apply crop
             y1_crop, y2_crop, x1_crop, x2_crop = crop
             if x2_crop == -1: x2_crop = frame.shape[1]
             if y2_crop == -1: y2_crop = frame.shape[0]
@@ -254,9 +266,9 @@ def run_wav2lip_inference(
     print(f"Length of mel chunks: {len(mel_chunks)}")
 
     if len(full_frames) > len(mel_chunks):
-        if static_mode_internal:
+        if static_mode_internal: 
             full_frames = [full_frames[0] for _ in range(len(mel_chunks))]
-        else: 
+        else:
             full_frames = full_frames[:len(mel_chunks)]
     elif len(mel_chunks) > len(full_frames) and full_frames:
          if static_mode_internal:
@@ -307,13 +319,11 @@ def run_wav2lip_inference(
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"FFmpeg failed to combine video and audio: {e.stderr}. Intermediate video at {temp_video_path}") from e
 
-
+    
     return output_video_path
 
 
 # if __name__ == '__main__':
-#     # This section is for standalone testing of the refactored logic.
-#     # You would typically call run_wav2lip_inference from your FastAPI handler.
     
 #     # Create dummy files for testing
 #     print("Setting up dummy files for standalone test...")
