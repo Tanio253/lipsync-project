@@ -5,10 +5,8 @@ import json
 import logging
 import os
 
-# Assuming wav2lip_handler is in the same 'app' package
 from .wav2lip_handler import generate_lip_sync_video, load_model_on_startup
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -18,17 +16,11 @@ app = FastAPI(title="LipSync WebSocket API")
 async def startup_event():
     logger.info("Application startup...")
     try:
-        # Set an environment variable to indicate running in Docker if this helps logic elsewhere
-        # This is just an example, might not be strictly necessary if paths are handled well.
         os.environ['DOCKER_CONTAINER'] = '1'
-        load_model_on_startup() # [cite: 8]
+        load_model_on_startup()
     except Exception as e:
         logger.error(f"FATAL: Could not load Wav2Lip model on startup: {e}", exc_info=True)
-        # Depending on desired behavior, you might want the app to fail starting
-        # or handle this gracefully (e.g., API returns error until model loads).
-        # For now, it will raise the exception and FastAPI might not start fully.
 
-# Simple HTML page for testing WebSocket
 html_test_page = """
 <!DOCTYPE html>
 <html>
@@ -48,10 +40,10 @@ html_test_page = """
     </head>
     <body>
         <div class="container">
-            <h1>WebSocket LipSync Test</h1>
+            <h1>WebSocket LipSync Test (Image or Video)</h1>
             <div class="controls">
-                <label for="imageFile">Choose Image:</label>
-                <input type="file" id="imageFile" accept="image/png, image/jpeg">
+                <label for="faceFile">Choose Image or Video:</label>
+                <input type="file" id="faceFile" accept="image/png, image/jpeg, video/mp4, video/quicktime">
                 <br>
                 <label for="audioFile">Choose Audio:</label>
                 <input type="file" id="audioFile" accept="audio/wav, audio/mp3">
@@ -67,7 +59,7 @@ html_test_page = """
             var ws;
             const statusDiv = document.getElementById('status');
             const outputVideo = document.getElementById('outputVideo');
-            const imageFileInput = document.getElementById('imageFile');
+            const faceFileInput = document.getElementById('faceFile');
             const audioFileInput = document.getElementById('audioFile');
 
             function connect() {
@@ -86,7 +78,7 @@ html_test_page = """
                         if (data.error) {
                             statusDiv.innerHTML = "Error: " + data.error;
                             statusDiv.style.backgroundColor = '#f8d7da'; // Reddish for error
-                        } else if (data.video_base64) { // [cite: 3]
+                        } else if (data.video_base64) {
                             outputVideo.src = "data:video/mp4;base64," + data.video_base64;
                             outputVideo.load(); // Important to load new src
                             outputVideo.play().catch(e => console.warn("Autoplay was prevented:", e));
@@ -138,11 +130,11 @@ html_test_page = """
                     return;
                 }
 
-                const imageFile = imageFileInput.files[0];
+                const faceFile = faceFileInput.files[0];
                 const audioFile = audioFileInput.files[0];
 
-                if (!imageFile || !audioFile) {
-                    statusDiv.innerHTML = "Please select both an image and an audio file.";
+                if (!faceFile || !audioFile) {
+                    statusDiv.innerHTML = "Please select both a face input (image/video) and an audio file.";
                     statusDiv.style.backgroundColor = '#fff3cd';
                     return;
                 }
@@ -150,12 +142,12 @@ html_test_page = """
                 statusDiv.innerHTML = "Reading files and preparing to send data...";
                 statusDiv.style.backgroundColor = '#e9ecef';
 
-                getBase64(imageFile, function(imageBase64, imageType) {
+                getBase64(faceFile, function(faceBase64, faceType) {
                     getBase64(audioFile, function(audioBase64, audioType) {
                         const payload = {
-                            image_base64: imageBase64, // [cite: 2]
-                            audio_base64: audioBase64, // [cite: 2]
-                            image_type: imageType, // e.g. "image/png"
+                            face_base64: faceBase64,
+                            audio_base64: audioBase64,
+                            face_type: faceType, // e.g. "image/png" or "video/mp4"
                             audio_type: audioType  // e.g. "audio/wav"
                         };
                         ws.send(JSON.stringify(payload));
@@ -176,7 +168,7 @@ html_test_page = """
 async def get_test_client_page():
     return html_test_page
 
-@app.websocket("/ws/lipsync") # [cite: 2, 5]
+@app.websocket("/ws/lipsync")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("WebSocket connection accepted from client.")
@@ -187,37 +179,29 @@ async def websocket_endpoint(websocket: WebSocket):
             
             try:
                 data = json.loads(data_str)
-                image_b64 = data.get("image_base64")
+                face_b64 = data.get("face_base64")
                 audio_b64 = data.get("audio_base64")
-                # Optional: get file extensions if needed by handler
-                image_type = data.get("image_type", "image/png") # Default to png
-                audio_type = data.get("audio_type", "audio/wav") # Default to wav
+                face_type = data.get("face_type", "image/png") 
+                audio_type = data.get("audio_type", "audio/wav") 
 
-                # Simple validation for file extensions based on mime types
-                image_ext = "." + image_type.split('/')[-1] if image_type else ".png"
-                audio_ext = "." + audio_type.split('/')[-1] if audio_type else ".wav"
-                # More robust extension mapping might be needed
-                if image_ext == ".jpeg": image_ext = ".jpg"
-
-
-                if not image_b64 or not audio_b64:
-                    logger.warning("Missing image_base64 or audio_base64 in request.")
-                    await websocket.send_json({"error": "Missing image_base64 or audio_base64"})
+                if not face_b64 or not audio_b64:
+                    logger.warning("Missing face_base64 or audio_base64 in request.")
+                    await websocket.send_json({"error": "Missing face_base64 or audio_base64"})
                     continue
 
-                logger.info("Decoding base64 image and audio.")
-                image_bytes = base64.b64decode(image_b64)
+                logger.info(f"Decoding base64 face input ({face_type}) and audio.")
+                face_bytes = base64.b64decode(face_b64)
                 audio_bytes = base64.b64decode(audio_b64)
                 
                 await websocket.send_json({"message": "Data received. Starting lip sync generation..."})
                 logger.info("Starting lip sync video generation...")
                 
-                video_bytes = await generate_lip_sync_video(image_bytes, audio_bytes) # [cite: 3, 4]
+                video_bytes = await generate_lip_sync_video(face_bytes, audio_bytes, face_type)
                 
                 logger.info("Lip sync video generation complete. Encoding to base64 and sending.")
                 video_b64 = base64.b64encode(video_bytes).decode('utf-8')
                 
-                await websocket.send_json({"video_base64": video_b64}) # [cite: 3]
+                await websocket.send_json({"video_base64": video_b64})
                 logger.info("Video sent to client.")
 
             except json.JSONDecodeError:
@@ -226,10 +210,10 @@ async def websocket_endpoint(websocket: WebSocket):
             except base64.binascii.Error as b64_error:
                 logger.error(f"Base64 decoding error: {b64_error}")
                 await websocket.send_json({"error": f"Invalid base64 data: {b64_error}"})
-            except FileNotFoundError as fnf_error: # Catch specific errors from handler
+            except FileNotFoundError as fnf_error:
                 logger.error(f"File not found during processing: {fnf_error}", exc_info=True)
                 await websocket.send_json({"error": f"Server configuration error: {fnf_error}"})
-            except RuntimeError as processing_error: # Catch specific errors from handler
+            except RuntimeError as processing_error:
                 logger.error(f"Processing error: {processing_error}", exc_info=True)
                 await websocket.send_json({"error": f"Video generation failed: {processing_error}"})
             except Exception as e:
@@ -240,13 +224,9 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.info("WebSocket connection closed by client.")
     except Exception as e:
         logger.error(f"Unhandled WebSocket exception: {str(e)}", exc_info=True)
-        # Try to close gracefully if possible
         try:
             await websocket.close(code=1011, reason=f"Unhandled server error: {str(e)}")
         except Exception:
-            pass # Websocket might already be closed or in a bad state
+            pass 
     finally:
         logger.info("WebSocket endpoint handler finished.")
-
-# To run this app (from the parent directory of 'app', i.e., 'lipsync_project'):
-# uvicorn app.main:app --reload --port 8000
