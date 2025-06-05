@@ -4,3 +4,5 @@ Wav2Lip/
 checkpoints/
 *.npy
 path.txt
+__pycache__/
+*.pyc
