@@ -43,23 +43,10 @@ Follow these steps to set up the project locally:
 
 1.  **Clone the Repository**
     ```bash
-    git clone <your-github-repository-url>
-    cd <repository-folder-name>
+    git clone https://github.com/Tanio253/streaming-Wav2Lip
+    cd streaming-Wav2Lip
     ```
-
-2.  **Download the Pretrained Model**
-    The worker requires a pretrained Wav2Lip model checkpoint.
-    * Download the `wav2lip_gan.pth` file. A working version can be downloaded from this [GitHub Releases link](https://github.com/anothermartz/Easy-Wav2Lip/releases/download/Prerequesits/Wav2Lip_GAN.pth).
-    * Create the necessary directories:
-        ```bash
-        mkdir -p worker/checkpoints
-        ```
-    * Move the downloaded file into the created directory:
-        ```bash
-        mv /path/to/your/downloads/Wav2Lip_GAN.pth worker/checkpoints/
-        ```
-    This step is crucial for the AI model to load correctly.
-
+    
 ## Running the System
 With the model in place, you can start the entire application using a single Docker Compose command:
 
