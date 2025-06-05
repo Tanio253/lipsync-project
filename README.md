@@ -10,28 +10,13 @@ This project implements a real-time, streaming lip-syncing system using a Wav2Li
 * [How to Test](#how-to-test)
 
 ## System Architecture
-The system is designed using a microservice architecture, composed of a **Gateway**, a **Worker**, and a **Redis** message broker. This separation of concerns ensures scalability and robustness.
-
-Here is the data flow:
-1.  **Client (Browser)**: The user accesses a web-based client, selects an image, and initiates a session. Their microphone audio is captured and streamed chunk by chunk over a WebSocket connection.
-2.  **Gateway (FastAPI & WebSocket)**:
-    * Accepts the WebSocket connection and receives the initial face image.
-    * Pushes a `start_session` job, including the image, to the `worker_queue` in Redis.
-    * Listens for audio chunks from the client and forwards them as `process_audio` jobs to the same Redis queue.
-    * Subscribes to a unique Redis Pub/Sub channel to listen for generated video frames from the worker.
-    * Streams the received frames back to the client over the WebSocket, providing a real-time video feed.
-3.  **Redis**:
-    * Acts as the communication backbone between the gateway and the worker.
-    * A **List** (`worker_queue`) is used as a task queue to ensure jobs are processed in order.
-    * A **Pub/Sub** channel (`results:{client_id}`) is used to send the processed video frames directly back to the correct gateway instance, enabling real-time, low-latency communication.
-4.  **Worker (Wav2Lip Model)**:
-    * A dedicated Python process that continuously monitors the `worker_queue` for incoming jobs.
-    * **On `start_session`**: It decodes the image, detects the face, and prepares a `Wav2LipStreamingSession` to manage the state.
-    * **On `process_audio`**: It adds the incoming audio to a buffer. When enough audio is collected to generate a video frame, it runs the Wav2Lip model inference.
-    * The generated lip-synced face is composited back onto the original image.
-    * The final frame is encoded and published to the Redis Pub/Sub channel, which the gateway forwards to the client.
-
-This entire system is containerized using Docker, allowing for consistent and straightforward deployment.
+![Logo](assets/arch.png)
+1. The Client establishes a WebSocket connection with the Gateway and streams audio chunks.
+2. The Gateway pushes these tasks as jobs into a Redis List (worker_queue).
+3. The Worker continuously pulls jobs from the queue.
+4. After processing the audio with the AI model, the Worker publishes the resulting video frame to a Redis Pub/Sub channel unique to the client.
+5. The Gateway, which is subscribed to this channel, receives the frame instantly.
+6. Finally, the Gateway streams the video frame back to the Client over the WebSocket, completing the real-time loop.
 
 ## Prerequisites
 Before you begin, ensure you have the following installed on your system:
@@ -67,4 +52,7 @@ The gateway provides a built-in HTML client for easy testing.
     * **Allow** the microphone permission.
     * Click the **"Start Recording & Streaming"** button.
     * Begin speaking into your microphone.
+  
+## Non streaming version
+Please visit `non-streaming` branch to use the non streaming version, which is of higher quality.
 
