@@ -52,4 +52,7 @@ The gateway provides a built-in HTML client for easy testing.
     * **Allow** the microphone permission.
     * Click the **"Start Recording & Streaming"** button.
     * Begin speaking into your microphone.
+  
+## Non streaming version
+Please visit `non-streaming` branch to use the non streaming version, which is of higher quality.
 
