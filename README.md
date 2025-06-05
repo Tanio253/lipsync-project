@@ -61,12 +61,10 @@ The gateway provides a built-in HTML client for easy testing.
 
 2.  **Start a Session**:
     * Click **"Choose File"** and select a clear, front-facing image (PNG or JPEG).
-    * Click the **"Start LipSync Session"** button. The status will update to "Session started!".
+    * Click the **"Start LipSync Session"** button.
 
 3.  **Stream Audio**:
-    * Your browser may ask for microphone permission. Please **allow** it.
+    * **Allow** the microphone permission.
     * Click the **"Start Recording & Streaming"** button.
     * Begin speaking into your microphone.
 
-4.  **View the Output**:
-    * You will see the image in the video area come to life, with its lips synced to your voice in real-time. To stop, simply click **"Stop Recording"**. You can then start a new recording or close the page.
