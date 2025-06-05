@@ -1,6 +1,6 @@
 # Real-Time Lip-Sync WebSocket API
 
-This project implements a real-time, streaming lip-syncing system using a Wav2Lip model. It meets the take-home assignment's objective to develop a WebSocket API that animates a still image based on a live audio stream.
+This project implements a real-time, streaming lip-syncing system using a Wav2Lip model.
 
 ## Table of Contents
 * [System Architecture](#system-architecture)
@@ -39,7 +39,6 @@ Before you begin, ensure you have the following installed on your system:
 * **Docker Compose**: (Usually included with Docker Desktop)
 
 ## Installation
-Follow these steps to set up the project locally:
 
 1.  **Clone the Repository**
     ```bash
@@ -52,3 +51,22 @@ With the model in place, you can start the entire application using a single Doc
 
 ```bash
 docker-compose up --build
+```
+
+## How to Test
+The gateway provides a built-in HTML client for easy testing.
+
+1.  **Open the Client**: Once the Docker containers are running, navigate to the following URL in your web browser:
+    [http://localhost:8000](http://localhost:8000)
+
+2.  **Start a Session**:
+    * Click **"Choose File"** and select a clear, front-facing image (PNG or JPEG).
+    * Click the **"Start LipSync Session"** button. The status will update to "Session started!".
+
+3.  **Stream Audio**:
+    * Your browser may ask for microphone permission. Please **allow** it.
+    * Click the **"Start Recording & Streaming"** button.
+    * Begin speaking into your microphone.
+
+4.  **View the Output**:
+    * You will see the image in the video area come to life, with its lips synced to your voice in real-time. To stop, simply click **"Stop Recording"**. You can then start a new recording or close the page.
