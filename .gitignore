@@ -1,1 +1,6 @@
-.pth
+Wav2Lip/
+*.jpg
+*.avi
+checkpoints/
+*.npy
+path.txt

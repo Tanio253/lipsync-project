@@ -34,18 +34,30 @@ def _load_wav2lip_checkpoint(checkpoint_path):
     return checkpoint
 
 def load_wav2lip_model(model_path):
-    model = Wav2Lip()
-    print(f"Loading Wav2Lip checkpoint from: {model_path}")
-    checkpoint = _load_wav2lip_checkpoint(model_path)
-    
-    # Handle model state dict compatibility (e.g., if saved with DataParallel)
-    s = checkpoint["state_dict"]
-    new_s = {}
-    for k, v in s.items():
-        new_s[k.replace('module.', '')] = v
-    model.load_state_dict(new_s)
+    print(f"Loading Wav2Lip model from: {model_path}")
 
-    model = model.to(device)
+    try:
+        checkpoint = torch.load(model_path, map_location=device)
+
+        if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+            print("Detected state_dict checkpoint (.pth)")
+            model = Wav2Lip()
+            s = checkpoint["state_dict"]
+            new_s = {k.replace("module.", ""): v for k, v in s.items()}
+            model.load_state_dict(new_s)
+            return model.to(device).eval()
+
+        elif isinstance(checkpoint, Wav2Lip):
+            print("Detected full serialized Wav2Lip model (.pt)")
+            return checkpoint.to(device).eval()
+
+    except RuntimeError as e:
+        if "PytorchStreamReader failed reading zip archive" not in str(e):
+            raise  # re-raise other errors
+
+    # Fallback to TorchScript
+    print("Detected TorchScript model (.pt)")
+    model = torch.jit.load(model_path, map_location=device)
     return model.eval()
 
 # --- Face Detection Helper ---
@@ -162,10 +174,10 @@ def run_wav2lip_inference(
     wav2lip_model_instance, # Pass the pre-loaded model
     static: bool = False,
     fps: float = 25.,
-    pads: list = [0, 10, 0, 0],
+    pads: list = [0, 20, 0, 0],
     face_det_batch_size: int = 16, # Renamed from args.face_det_batch_size
     wav2lip_batch_size: int = 128, # Renamed from args.wav2lip_batch_size
-    resize_factor: int = 1,
+    resize_factor: int = 2,
     crop: list = [0, -1, 0, -1],
     box: list = [-1, -1, -1, -1],
     rotate: bool = False,

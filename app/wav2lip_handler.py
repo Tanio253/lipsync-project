@@ -9,7 +9,7 @@ import os
 # This model should be loaded once when your FastAPI app starts.
 # You can use FastAPI's startup event for this.
 WAV2LIP_MODEL = None
-WAV2LIP_CHECKPOINT_PATH = os.environ.get("WAV2LIP_CHECKPOINT", "app/checkpoints/wav2lip_gan.pth")
+WAV2LIP_CHECKPOINT_PATH = os.environ.get("WAV2LIP_CHECKPOINT", "app/checkpoints/Wav2Lip-SD-GAN.pt")
 
 def load_model_on_startup(): # Call this function during FastAPI startup
     global WAV2LIP_MODEL
